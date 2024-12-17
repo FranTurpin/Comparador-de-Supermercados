@@ -1,30 +1,51 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 import asyncio
 from db.db_operations import fetch_data, execute_query
 
 class EliminarWindow:
     def __init__(self, root):
-        self.window = tk.Toplevel(root)
+        self.window = ctk.CTkToplevel(root)
         self.window.title("Eliminar Producto")
         self.window.geometry("400x300")
-        self.window.configure(bg="#f4f4f4")
+        self.window.resizable(False, False)
 
-        tk.Label(self.window, text="Selecciona un producto a eliminar:", font=("Helvetica", 12), bg="#f4f4f4").pack(pady=10)
+        # Configurar estilo oscuro
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+
+        # Frame principal con fondo oscuro
+        main_frame = ctk.CTkFrame(self.window, fg_color="#2b2b2b", corner_radius=15)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Etiqueta de título
+        title_label = ctk.CTkLabel(main_frame, text="Eliminar Producto",
+                                   font=("Helvetica", 20, "bold"), text_color="white")
+        title_label.pack(pady=20)
+
+        # Subtítulo
+        subtitle_label = ctk.CTkLabel(main_frame, text="Selecciona un producto a eliminar:",
+                                      font=("Helvetica", 14), text_color="white")
+        subtitle_label.pack(pady=10)
 
         # Variable para almacenar productos
         self.productos = []  # Lista de productos para el OptionMenu
-        self.selected_producto = tk.StringVar(self.window)  # Producto seleccionado
+        self.selected_producto = ctk.StringVar(value="Cargando productos...")
+
+        # Menú desplegable
+        self.dropdown = ctk.CTkOptionMenu(main_frame, variable=self.selected_producto, values=["Cargando..."])
+        self.dropdown.pack(pady=10)
+
+        # Botón para eliminar producto
+        delete_button = ctk.CTkButton(main_frame, text="Eliminar Producto", command=self.eliminar_producto, width=150)
+        delete_button.pack(pady=20)
 
         # Cargar productos desde la base de datos
         asyncio.run(self.cargar_productos())
 
-        # Menú desplegable
-        self.dropdown = tk.OptionMenu(self.window, self.selected_producto, *self.productos)
-        self.dropdown.pack(pady=10)
-
-        # Botón para eliminar producto
-        tk.Button(self.window, text="Eliminar Producto", command=self.eliminar_producto).pack(pady=20)
+        # Mensaje si no hay productos
+        if not self.productos:
+            self.selected_producto.set("No hay productos disponibles")
 
     async def cargar_productos(self):
         """
@@ -40,9 +61,12 @@ class EliminarWindow:
             # Combina el producto y el supermercado entre paréntesis
             self.productos = [f"{row['producto']} ({row['supermercado']})" for row in result]
 
+            # Actualizar el OptionMenu si hay productos
             if self.productos:
-                self.selected_producto.set(self.productos[0])  # Valor inicial
+                self.dropdown.configure(values=self.productos)
+                self.selected_producto.set(self.productos[0])  # Selección inicial
             else:
+                self.dropdown.configure(values=["No hay productos disponibles"])
                 self.selected_producto.set("No hay productos disponibles")
         except Exception as e:
             print(f"Error al cargar productos: {e}")

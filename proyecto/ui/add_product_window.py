@@ -1,60 +1,72 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 import asyncio
 from db.db_operations import fetch_data, execute_query  # Funciones de base de datos
 
 class AddProductWindow:
     def __init__(self, root):
-        self.window = tk.Toplevel(root)
+        self.window = ctk.CTkToplevel(root)
         self.window.title("Añadir Producto")
-        self.window.geometry("400x300")
-        self.window.configure(bg="#f4f4f4")
+        self.window.geometry("400x350")
+        self.window.resizable(False, False)
 
-        # Etiquetas y campos de entrada
-        tk.Label(self.window, text="Nombre del Producto:", font=("Helvetica", 12), bg="#f4f4f4").pack(pady=5)
-        self.producto_entry = tk.Entry(self.window, font=("Helvetica", 12))
-        self.producto_entry.pack(pady=5)
+        # Configuración del estilo oscuro
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
 
-        tk.Label(self.window, text="Precio:", font=("Helvetica", 12), bg="#f4f4f4").pack(pady=5)
-        self.precio_entry = tk.Entry(self.window, font=("Helvetica", 12))
-        self.precio_entry.pack(pady=5)
+        # Frame principal con fondo oscuro
+        main_frame = ctk.CTkFrame(self.window, fg_color="#2b2b2b", corner_radius=15)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        tk.Label(self.window, text="Selecciona un Supermercado:", font=("Helvetica", 12), bg="#f4f4f4").pack(pady=5)
+        # Título principal
+        title_label = ctk.CTkLabel(main_frame, text="Añadir Producto",
+                                   font=("Helvetica", 18, "bold"), text_color="white")
+        title_label.pack(pady=10)
 
-        # Desplegable de supermercados
-        self.supermercados = []
-        self.selected_supermercado = tk.StringVar(self.window)
-        self.selected_supermercado.set("Cargando...")  # Placeholder inicial
+        # Entrada para nombre del producto
+        name_label = ctk.CTkLabel(main_frame, text="Nombre del Producto:", font=("Helvetica", 14), text_color="white")
+        name_label.pack(pady=(10, 5))
+        self.producto_entry = ctk.CTkEntry(main_frame, placeholder_text="Escribe el nombre del producto", width=250)
+        self.producto_entry.pack(pady=(0, 10))
 
-        self.dropdown = tk.OptionMenu(self.window, self.selected_supermercado, ())
-        self.dropdown.pack(pady=5)
+        # Entrada para precio
+        price_label = ctk.CTkLabel(main_frame, text="Precio:", font=("Helvetica", 14), text_color="white")
+        price_label.pack(pady=(10, 5))
+        self.precio_entry = ctk.CTkEntry(main_frame, placeholder_text="Escribe el precio", width=250)
+        self.precio_entry.pack(pady=(0, 10))
+
+        # Menú desplegable para supermercados
+        supermercado_label = ctk.CTkLabel(main_frame, text="Selecciona un Supermercado:", font=("Helvetica", 14), text_color="white")
+        supermercado_label.pack(pady=(10, 5))
+
+        self.supermercados = {}
+        self.selected_supermercado = ctk.StringVar(value="Cargando...")
+        self.dropdown = ctk.CTkOptionMenu(main_frame, variable=self.selected_supermercado, values=["Cargando..."])
+        self.dropdown.pack(pady=(0, 20))
 
         # Botón para añadir producto
-        tk.Button(self.window, text="Añadir Producto", width=20, command=self.add_product).pack(pady=20)
+        add_button = ctk.CTkButton(main_frame, text="Añadir Producto", command=self.add_product, width=150)
+        add_button.pack(pady=10)
 
-        # Cargar supermercados al iniciar
+        # Cargar supermercados
         asyncio.run(self.cargar_supermercados())
 
     async def cargar_supermercados(self):
         """
-        Cargar la lista de supermercados desde la base de datos y actualizar el desplegable.
+        Cargar la lista de supermercados desde la base de datos y actualizar el menú desplegable.
         """
         query = "SELECT id, nombre FROM supermercados"
         try:
             result = await fetch_data(query)
             if not result:
                 messagebox.showerror("Error", "No hay supermercados disponibles en la base de datos.")
+                self.dropdown.configure(values=["No hay supermercados"])
                 self.selected_supermercado.set("No hay supermercados")
                 return
 
             # Guardar supermercados y actualizar el OptionMenu
             self.supermercados = {row["nombre"]: row["id"] for row in result}
-            menu = self.dropdown["menu"]
-            menu.delete(0, "end")  # Eliminar opciones anteriores
-
-            for nombre in self.supermercados.keys():
-                menu.add_command(label=nombre, command=lambda value=nombre: self.selected_supermercado.set(value))
-
+            self.dropdown.configure(values=list(self.supermercados.keys()))
             self.selected_supermercado.set(next(iter(self.supermercados)))  # Seleccionar el primer supermercado
         except Exception as e:
             print(f"Error al cargar supermercados: {e}")
@@ -69,7 +81,7 @@ class AddProductWindow:
         supermercado_nombre = self.selected_supermercado.get()
 
         # Validaciones
-        if not producto or not precio or not supermercado_nombre:
+        if not producto or not precio or supermercado_nombre == "No hay supermercados":
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
 
